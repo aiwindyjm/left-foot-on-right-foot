@@ -12,5 +12,9 @@
 - TASK / REPORT 协议草案、JSON Schema 与静态契约样例。
 - 工作流状态规范与基础验证工具、Windows/Linux CI。
 
+### Changed
+
+- CI Actions 固定到原生 Node.js 24 运行时的官方版本，消除旧运行时弃用告警。
+
 尚未实现 Bridge、ZCODE 或其他 Adapter、浏览器自动化、Session 恢复或 UI。
 Phase 0 不等于 v0.1.0，不创建功能发布。
