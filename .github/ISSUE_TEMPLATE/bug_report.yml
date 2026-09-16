@@ -1,0 +1,32 @@
+name: Bug report
+description: 报告文档、协议或验证问题，请勿提交秘密或真实会话。
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: "当前只有 Phase 0 基础资产。安全漏洞请私密报告，不要贴入 Cookie、Token 或私人日志。"
+  - type: input
+    id: environment
+    attributes:
+      label: 环境与版本
+      description: 操作系统、Node/npm 版本和仓库提交。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 重现步骤
+      description: 提供最小、脱敏的重现方式。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 脱敏证据
+      description: 错误信息、最小样例或相关文档位置；不要粘贴完整个人会话。

@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/aiwindyjm/left-foot-on-right-foot/protocol/message.schema.json",
+  "title": "Left Foot on Right Foot message 0.1",
+  "oneOf": [
+    { "$ref": "#/$defs/task" },
+    { "$ref": "#/$defs/report" }
+  ],
+  "$defs": {
+    "text": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "$ref": "#/$defs/id" },
+        "message": { "$ref": "#/$defs/text" }
+      }
+    },
+    "envelope": {
+      "type": "object",
+      "required": ["VERSION", "TYPE", "MESSAGE_ID", "SESSION_ID", "IN_REPLY_TO", "STAGE", "AGENT"],
+      "properties": {
+        "VERSION": { "const": "0.1" },
+        "TYPE": { "enum": ["TASK", "REPORT"] },
+        "MESSAGE_ID": { "$ref": "#/$defs/id" },
+        "SESSION_ID": { "$ref": "#/$defs/id" },
+        "IN_REPLY_TO": {
+          "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+        },
+        "STAGE": { "$ref": "#/$defs/id" },
+        "AGENT": { "$ref": "#/$defs/id" }
+      }
+    },
+    "task": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        {
+          "if": { "properties": { "ACTION": { "const": "CONTINUE" } }, "required": ["ACTION"] },
+          "then": {
+            "properties": {
+              "PROMPT": { "$ref": "#/$defs/text" },
+              "STOP_CONDITION": { "$ref": "#/$defs/text" },
+              "HUMAN_GATE": { "const": false },
+              "REASON": { "type": "null" },
+              "ERROR": { "type": "null" }
+            }
+          },
+          "else": {
+            "properties": {
+              "PROMPT": { "type": "null" },
+              "STOP_CONDITION": { "type": "null" },
+              "REASON": { "$ref": "#/$defs/text" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "ACTION": { "const": "HUMAN_GATE" } }, "required": ["ACTION"] },
+          "then": { "properties": { "HUMAN_GATE": { "const": true } } },
+          "else": { "properties": { "HUMAN_GATE": { "const": false } } }
+        },
+        {
+          "if": { "properties": { "ACTION": { "const": "ERROR" } }, "required": ["ACTION"] },
+          "then": { "properties": { "ERROR": { "$ref": "#/$defs/error" } } },
+          "else": { "properties": { "ERROR": { "type": "null" } } }
+        }
+      ],
+      "required": ["ACTION", "PROMPT", "HUMAN_GATE", "STOP_CONDITION", "REASON", "ERROR"],
+      "properties": {
+        "TYPE": { "const": "TASK" },
+        "ACTION": { "enum": ["CONTINUE", "PAUSE", "HUMAN_GATE", "COMPLETED", "ERROR"] },
+        "PROMPT": { "type": ["string", "null"] },
+        "HUMAN_GATE": { "type": "boolean" },
+        "STOP_CONDITION": { "type": ["string", "null"] },
+        "REASON": { "type": ["string", "null"] },
+        "ERROR": { "anyOf": [{ "$ref": "#/$defs/error" }, { "type": "null" }] }
+      },
+      "unevaluatedProperties": false
+    },
+    "report": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        {
+          "if": { "properties": { "STOP_REASON": { "const": "ERROR" } }, "required": ["STOP_REASON"] },
+          "then": { "properties": { "ERROR": { "$ref": "#/$defs/error" } } },
+          "else": { "properties": { "ERROR": { "type": "null" } } }
+        }
+      ],
+      "required": ["SUMMARY", "CHANGES", "VALIDATION", "RISKS", "BLOCKERS", "STOP_REASON", "ERROR"],
+      "properties": {
+        "TYPE": { "const": "REPORT" },
+        "IN_REPLY_TO": { "$ref": "#/$defs/id" },
+        "SUMMARY": { "$ref": "#/$defs/text" },
+        "CHANGES": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "kind"],
+            "properties": {
+              "path": { "$ref": "#/$defs/text" },
+              "kind": { "enum": ["added", "modified", "deleted"] }
+            }
+          }
+        },
+        "VALIDATION": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["command", "result", "details"],
+            "properties": {
+              "command": { "$ref": "#/$defs/text" },
+              "result": { "enum": ["PASS", "FAIL", "NOT_RUN"] },
+              "details": { "$ref": "#/$defs/text" }
+            }
+          }
+        },
+        "RISKS": { "type": "array", "items": { "$ref": "#/$defs/text" } },
+        "BLOCKERS": { "type": "array", "items": { "$ref": "#/$defs/text" } },
+        "STOP_REASON": { "enum": ["TASK_COMPLETED", "HUMAN_GATE", "PAUSED", "ERROR", "LIMIT_REACHED"] },
+        "ERROR": { "anyOf": [{ "$ref": "#/$defs/error" }, { "type": "null" }] }
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}

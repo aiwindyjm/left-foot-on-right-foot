@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Private security report
+    url: https://github.com/aiwindyjm/left-foot-on-right-foot/security/advisories/new
+    about: 安全问题请私密报告；入口不可用时使用 SECURITY.md 中的邮箱。
+  - name: Community conduct
+    url: https://github.com/aiwindyjm/left-foot-on-right-foot/blob/main/CODE_OF_CONDUCT.md
+    about: 行为准则举报使用文档中的私密邮箱，不要公开个人信息。
