@@ -2,6 +2,9 @@
 
 下列模板用于人类给 Coding Agent 分配仓库任务，不是机器协议消息。
 替换方括号内容后使用；未来机器通道按 [协议](../protocol/README.md)发送 JSON。
+此模板约束开发本仓库的 Agent，不是用脚本替代产品中的本地模型监督。
+产品内保留独立评估规划会话；本地模型理解与交接，不重评分，Coding Agent不能生成自己的批准决定。
+桌面任务按 [接入验收](desktop-integration.md)执行，D0文档不隐含读取会话、安装SDK或发送测试授权。
 
 ```text
 项目：左脚踩右脚 / Left Foot on Right Foot

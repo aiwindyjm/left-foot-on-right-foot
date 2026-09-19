@@ -1,27 +1,116 @@
 {
   "initial": "IDLE",
-  "terminal": ["COMPLETED"],
+  "terminal": [
+    "COMPLETED"
+  ],
   "states": {
-    "IDLE": ["SEND_TO_AGENT", "HUMAN_GATE", "PAUSED", "ERROR"],
-    "SEND_TO_AGENT": ["AGENT_RUNNING", "HUMAN_GATE", "PAUSED", "ERROR"],
-    "AGENT_RUNNING": ["AGENT_WAITING", "HUMAN_GATE", "PAUSED", "ERROR"],
-    "AGENT_WAITING": ["CAPTURE_REPORT", "HUMAN_GATE", "PAUSED", "ERROR"],
-    "CAPTURE_REPORT": ["SEND_TO_LLM", "HUMAN_GATE", "PAUSED", "ERROR"],
-    "SEND_TO_LLM": ["LLM_THINKING", "HUMAN_GATE", "PAUSED", "ERROR"],
-    "LLM_THINKING": ["LLM_DONE", "HUMAN_GATE", "PAUSED", "ERROR"],
-    "LLM_DONE": ["PARSE_TASK", "HUMAN_GATE", "PAUSED", "ERROR"],
-    "PARSE_TASK": ["SEND_TO_AGENT", "HUMAN_GATE", "PAUSED", "ERROR", "COMPLETED"],
-    "HUMAN_GATE": ["PARSE_TASK", "PAUSED", "ERROR"],
-    "PAUSED": ["IDLE", "PARSE_TASK", "HUMAN_GATE", "ERROR"],
-    "ERROR": ["PAUSED", "HUMAN_GATE"],
+    "IDLE": [
+      "PARSE_TASK",
+      "HUMAN_GATE",
+      "PAUSED",
+      "ERROR"
+    ],
+    "SEND_TO_AGENT": [
+      "AGENT_RUNNING",
+      "HUMAN_GATE",
+      "PAUSED",
+      "ERROR"
+    ],
+    "AGENT_RUNNING": [
+      "AGENT_WAITING",
+      "HUMAN_GATE",
+      "PAUSED",
+      "ERROR"
+    ],
+    "AGENT_WAITING": [
+      "CAPTURE_REPORT",
+      "HUMAN_GATE",
+      "PAUSED",
+      "ERROR"
+    ],
+    "CAPTURE_REPORT": [
+      "SUPERVISE_REPORT",
+      "HUMAN_GATE",
+      "PAUSED",
+      "ERROR"
+    ],
+    "SUPERVISE_REPORT": [
+      "SEND_TO_PLANNER",
+      "HUMAN_GATE",
+      "PAUSED",
+      "ERROR"
+    ],
+    "SEND_TO_PLANNER": [
+      "PLANNER_THINKING",
+      "HUMAN_GATE",
+      "PAUSED",
+      "ERROR"
+    ],
+    "PLANNER_THINKING": [
+      "PLANNER_DONE",
+      "HUMAN_GATE",
+      "PAUSED",
+      "ERROR"
+    ],
+    "PLANNER_DONE": [
+      "PARSE_TASK",
+      "HUMAN_GATE",
+      "PAUSED",
+      "ERROR"
+    ],
+    "PARSE_TASK": [
+      "SUPERVISE_PLAN",
+      "HUMAN_GATE",
+      "PAUSED",
+      "ERROR"
+    ],
+    "SUPERVISE_PLAN": [
+      "SEND_TO_AGENT",
+      "SEND_TO_PLANNER",
+      "HUMAN_GATE",
+      "PAUSED",
+      "ERROR",
+      "COMPLETED"
+    ],
+    "HUMAN_GATE": [
+      "PARSE_TASK",
+      "PAUSED",
+      "ERROR"
+    ],
+    "PAUSED": [
+      "IDLE",
+      "PARSE_TASK",
+      "HUMAN_GATE",
+      "ERROR"
+    ],
+    "ERROR": [
+      "PAUSED",
+      "HUMAN_GATE"
+    ],
     "COMPLETED": []
   },
   "actionTargets": {
-    "CONTINUE": "SEND_TO_AGENT",
+    "CONTINUE": "SUPERVISE_PLAN",
     "PAUSE": "PAUSED",
     "HUMAN_GATE": "HUMAN_GATE",
-    "COMPLETED": "COMPLETED",
+    "COMPLETED": "SUPERVISE_PLAN",
     "ERROR": "ERROR"
+  },
+  "decisionTargets": {
+    "REPORT": {
+      "FORWARD_REPORT": "SEND_TO_PLANNER",
+      "PAUSE": "PAUSED",
+      "HUMAN_GATE": "HUMAN_GATE",
+      "ERROR": "ERROR"
+    },
+    "PLAN": {
+      "DISPATCH_TASK": "SEND_TO_AGENT",
+      "REQUEST_REVISION": "SEND_TO_PLANNER",
+      "PAUSE": "PAUSED",
+      "HUMAN_GATE": "HUMAN_GATE",
+      "COMPLETED": "COMPLETED",
+      "ERROR": "ERROR"
+    }
   },
   "deliveryRules": {
     "sameIdSameContent": "IGNORE_DUPLICATE",
@@ -29,5 +118,13 @@
     "contextMismatch": "ERROR",
     "replyMismatch": "ERROR",
     "unknownDelivery": "HUMAN_GATE"
+  },
+  "supervisionRules": {
+    "localModelUnavailable": "ERROR",
+    "invalidDecision": "ERROR",
+    "evidenceMismatch": "ERROR",
+    "staleDecision": "ERROR",
+    "bypassSupervisor": false,
+    "cloudFallback": false
   }
 }

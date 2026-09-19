@@ -2,7 +2,7 @@
   "name": "left-foot-on-right-foot",
   "version": "0.0.0",
   "private": true,
-  "description": "Project foundation for an experimental AI-to-agent workflow bridge.",
+  "description": "Project foundation for a local LLM supervisor coordinating independent planners and coding agents.",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -10,14 +10,20 @@
     "npm": ">=11 <12"
   },
   "scripts": {
-    "test": "node --test tests/*.test.mjs",
+    "build:eval": "tsc -p tsconfig.evaluation.json",
+    "eval:preflight": "npm run build:eval && node .cache/evaluation/cli.js preflight",
+    "eval:practice": "npm run build:eval && node .cache/evaluation/cli.js practice",
+    "eval:acceptance": "npm run build:eval && node .cache/evaluation/cli.js acceptance",
+    "test": "npm run build:eval && node --test tests/*.test.mjs",
     "validate": "npm test && node scripts/validate.mjs",
     "check:secrets": "node scripts/check-secrets.mjs"
   },
   "devDependencies": {
+    "@types/node": "24.13.5",
     "ajv": "8.20.0",
     "jsonc-parser": "3.3.1",
     "remark-parse": "11.0.0",
-    "unified": "11.0.5"
+    "unified": "11.0.5",
+    "typescript": "5.9.3"
   }
 }

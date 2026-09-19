@@ -1,10 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/aiwindyjm/left-foot-on-right-foot/protocol/message.schema.json",
-  "title": "Left Foot on Right Foot message 0.1",
+  "title": "Left Foot on Right Foot message 0.2",
   "oneOf": [
     { "$ref": "#/$defs/task" },
-    { "$ref": "#/$defs/report" }
+    { "$ref": "#/$defs/report" },
+    { "$ref": "#/$defs/decision" }
   ],
   "$defs": {
     "text": { "type": "string", "minLength": 1, "pattern": "\\S" },
@@ -25,17 +26,19 @@
     },
     "envelope": {
       "type": "object",
-      "required": ["VERSION", "TYPE", "MESSAGE_ID", "SESSION_ID", "IN_REPLY_TO", "STAGE", "AGENT"],
+      "required": ["VERSION", "TYPE", "MESSAGE_ID", "SESSION_ID", "IN_REPLY_TO", "STAGE", "AGENT", "PLANNER", "SUPERVISOR"],
       "properties": {
-        "VERSION": { "const": "0.1" },
-        "TYPE": { "enum": ["TASK", "REPORT"] },
+        "VERSION": { "const": "0.2" },
+        "TYPE": { "enum": ["TASK", "REPORT", "DECISION"] },
         "MESSAGE_ID": { "$ref": "#/$defs/id" },
         "SESSION_ID": { "$ref": "#/$defs/id" },
         "IN_REPLY_TO": {
           "anyOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
         },
         "STAGE": { "$ref": "#/$defs/id" },
-        "AGENT": { "$ref": "#/$defs/id" }
+        "AGENT": { "$ref": "#/$defs/id" },
+        "PLANNER": { "$ref": "#/$defs/id" },
+        "SUPERVISOR": { "$ref": "#/$defs/id" }
       }
     },
     "task": {
@@ -80,6 +83,45 @@
         "HUMAN_GATE": { "type": "boolean" },
         "STOP_CONDITION": { "type": ["string", "null"] },
         "REASON": { "type": ["string", "null"] },
+        "ERROR": { "anyOf": [{ "$ref": "#/$defs/error" }, { "type": "null" }] }
+      },
+      "unevaluatedProperties": false
+    },
+    "decision": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        {
+          "if": { "properties": { "REVIEW": { "const": "REPORT" } }, "required": ["REVIEW"] },
+          "then": { "properties": { "ACTION": { "enum": ["FORWARD_REPORT", "PAUSE", "HUMAN_GATE", "ERROR"] } } },
+          "else": { "properties": { "ACTION": { "enum": ["DISPATCH_TASK", "REQUEST_REVISION", "PAUSE", "HUMAN_GATE", "COMPLETED", "ERROR"] } } }
+        },
+        {
+          "if": { "properties": { "ACTION": { "const": "REQUEST_REVISION" } }, "required": ["ACTION"] },
+          "then": { "properties": { "REQUEST": { "$ref": "#/$defs/text" } } },
+          "else": { "properties": { "REQUEST": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "ACTION": { "const": "HUMAN_GATE" } }, "required": ["ACTION"] },
+          "then": { "properties": { "HUMAN_GATE": { "const": true } } },
+          "else": { "properties": { "HUMAN_GATE": { "const": false } } }
+        },
+        {
+          "if": { "properties": { "ACTION": { "const": "ERROR" } }, "required": ["ACTION"] },
+          "then": { "properties": { "ERROR": { "$ref": "#/$defs/error" } } },
+          "else": { "properties": { "ERROR": { "type": "null" } } }
+        }
+      ],
+      "required": ["REVIEW", "ACTION", "REASON", "EVIDENCE", "REQUEST", "HUMAN_GATE", "ERROR"],
+      "properties": {
+        "TYPE": { "const": "DECISION" },
+        "IN_REPLY_TO": { "$ref": "#/$defs/id" },
+        "REVIEW": { "enum": ["REPORT", "PLAN"] },
+        "ACTION": { "enum": ["FORWARD_REPORT", "DISPATCH_TASK", "REQUEST_REVISION", "PAUSE", "HUMAN_GATE", "COMPLETED", "ERROR"] },
+        "REASON": { "$ref": "#/$defs/text" },
+        "EVIDENCE": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/id" } },
+        "REQUEST": { "type": ["string", "null"] },
+        "HUMAN_GATE": { "type": "boolean" },
         "ERROR": { "anyOf": [{ "$ref": "#/$defs/error" }, { "type": "null" }] }
       },
       "unevaluatedProperties": false

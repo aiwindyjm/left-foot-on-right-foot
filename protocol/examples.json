@@ -1,6 +1,6 @@
 [
   {
-    "VERSION": "0.1",
+    "VERSION": "0.2",
     "TYPE": "TASK",
     "MESSAGE_ID": "task-001",
     "SESSION_ID": "example-session",
@@ -12,10 +12,12 @@
     "HUMAN_GATE": false,
     "STOP_CONDITION": "Return the observed headings and stop.",
     "REASON": null,
-    "ERROR": null
+    "ERROR": null,
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor"
   },
   {
-    "VERSION": "0.1",
+    "VERSION": "0.2",
     "TYPE": "REPORT",
     "MESSAGE_ID": "report-001",
     "SESSION_ID": "example-session",
@@ -34,10 +36,12 @@
     "RISKS": [],
     "BLOCKERS": [],
     "STOP_REASON": "TASK_COMPLETED",
-    "ERROR": null
+    "ERROR": null,
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor"
   },
   {
-    "VERSION": "0.1",
+    "VERSION": "0.2",
     "TYPE": "TASK",
     "MESSAGE_ID": "task-002",
     "SESSION_ID": "example-session",
@@ -49,10 +53,12 @@
     "HUMAN_GATE": false,
     "STOP_CONDITION": "Return a concise clarification list and stop.",
     "REASON": null,
-    "ERROR": null
+    "ERROR": null,
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor"
   },
   {
-    "VERSION": "0.1",
+    "VERSION": "0.2",
     "TYPE": "TASK",
     "MESSAGE_ID": "task-pause",
     "SESSION_ID": "example-session",
@@ -64,10 +70,12 @@
     "HUMAN_GATE": false,
     "STOP_CONDITION": null,
     "REASON": "Wait for the operator to resume this session.",
-    "ERROR": null
+    "ERROR": null,
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor"
   },
   {
-    "VERSION": "0.1",
+    "VERSION": "0.2",
     "TYPE": "TASK",
     "MESSAGE_ID": "task-gate",
     "SESSION_ID": "example-session",
@@ -79,10 +87,12 @@
     "HUMAN_GATE": true,
     "STOP_CONDITION": null,
     "REASON": "A proposed architecture change needs a human decision.",
-    "ERROR": null
+    "ERROR": null,
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor"
   },
   {
-    "VERSION": "0.1",
+    "VERSION": "0.2",
     "TYPE": "TASK",
     "MESSAGE_ID": "task-complete",
     "SESSION_ID": "example-session",
@@ -94,10 +104,12 @@
     "HUMAN_GATE": false,
     "STOP_CONDITION": null,
     "REASON": "Completion branch example; the operator must verify actual acceptance evidence.",
-    "ERROR": null
+    "ERROR": null,
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor"
   },
   {
-    "VERSION": "0.1",
+    "VERSION": "0.2",
     "TYPE": "TASK",
     "MESSAGE_ID": "task-error",
     "SESSION_ID": "example-session",
@@ -109,10 +121,15 @@
     "HUMAN_GATE": false,
     "STOP_CONDITION": null,
     "REASON": "The report cannot establish what happened.",
-    "ERROR": { "code": "INCOMPLETE_EVIDENCE", "message": "Ask the operator to inspect the task." }
+    "ERROR": {
+      "code": "INCOMPLETE_EVIDENCE",
+      "message": "Ask the operator to inspect the task."
+    },
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor"
   },
   {
-    "VERSION": "0.1",
+    "VERSION": "0.2",
     "TYPE": "REPORT",
     "MESSAGE_ID": "report-error",
     "SESSION_ID": "example-session",
@@ -122,9 +139,198 @@
     "SUMMARY": "Example error report.",
     "CHANGES": [],
     "VALIDATION": [],
-    "RISKS": ["The task outcome is unknown."],
-    "BLOCKERS": ["The operator must inspect the Agent."],
+    "RISKS": [
+      "The task outcome is unknown."
+    ],
+    "BLOCKERS": [
+      "The operator must inspect the Agent."
+    ],
     "STOP_REASON": "ERROR",
-    "ERROR": { "code": "DISCONNECTED", "message": "Agent connection lost." }
+    "ERROR": {
+      "code": "DISCONNECTED",
+      "message": "Agent connection lost."
+    },
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor"
+  },
+  {
+    "VERSION": "0.2",
+    "TYPE": "DECISION",
+    "SESSION_ID": "example-session",
+    "STAGE": "phase-1",
+    "AGENT": "zcode",
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor",
+    "MESSAGE_ID": "decision-dispatch",
+    "IN_REPLY_TO": "task-002",
+    "REVIEW": "PLAN",
+    "ACTION": "DISPATCH_TASK",
+    "REASON": "The read-only proposal matches the approved task boundary.",
+    "EVIDENCE": [
+      "task-002"
+    ],
+    "REQUEST": null,
+    "HUMAN_GATE": false,
+    "ERROR": null
+  },
+  {
+    "VERSION": "0.2",
+    "TYPE": "DECISION",
+    "SESSION_ID": "example-session",
+    "STAGE": "phase-1",
+    "AGENT": "zcode",
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor",
+    "MESSAGE_ID": "decision-forward",
+    "IN_REPLY_TO": "report-001",
+    "REVIEW": "REPORT",
+    "ACTION": "FORWARD_REPORT",
+    "REASON": "The illustrative report has no executed validation. Ask the planner to account for the evidence gap; forwarding does not mean success.",
+    "EVIDENCE": [
+      "report-001"
+    ],
+    "REQUEST": null,
+    "HUMAN_GATE": false,
+    "ERROR": null
+  },
+  {
+    "VERSION": "0.2",
+    "TYPE": "DECISION",
+    "SESSION_ID": "example-session",
+    "STAGE": "phase-1",
+    "AGENT": "zcode",
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor",
+    "MESSAGE_ID": "decision-revise",
+    "IN_REPLY_TO": "task-002",
+    "REVIEW": "PLAN",
+    "ACTION": "REQUEST_REVISION",
+    "REASON": "The proposal needs explicit validation evidence.",
+    "EVIDENCE": [
+      "task-002"
+    ],
+    "REQUEST": "Revise the proposal to specify how observed headings will be verified.",
+    "HUMAN_GATE": false,
+    "ERROR": null
+  },
+  {
+    "VERSION": "0.2",
+    "TYPE": "DECISION",
+    "SESSION_ID": "example-session",
+    "STAGE": "phase-1",
+    "AGENT": "zcode",
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor",
+    "MESSAGE_ID": "decision-pause",
+    "IN_REPLY_TO": "report-001",
+    "REVIEW": "REPORT",
+    "ACTION": "PAUSE",
+    "REASON": "Evidence is insufficient to continue within the current boundary.",
+    "EVIDENCE": [
+      "report-001"
+    ],
+    "REQUEST": null,
+    "HUMAN_GATE": false,
+    "ERROR": null
+  },
+  {
+    "VERSION": "0.2",
+    "TYPE": "DECISION",
+    "SESSION_ID": "example-session",
+    "STAGE": "phase-1",
+    "AGENT": "zcode",
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor",
+    "MESSAGE_ID": "decision-gate",
+    "IN_REPLY_TO": "task-002",
+    "REVIEW": "PLAN",
+    "ACTION": "HUMAN_GATE",
+    "REASON": "The operator must resolve the scope before proceeding.",
+    "EVIDENCE": [
+      "task-002"
+    ],
+    "REQUEST": null,
+    "HUMAN_GATE": true,
+    "ERROR": null
+  },
+  {
+    "VERSION": "0.2",
+    "TYPE": "DECISION",
+    "SESSION_ID": "example-session",
+    "STAGE": "phase-1",
+    "AGENT": "zcode",
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor",
+    "MESSAGE_ID": "decision-complete",
+    "IN_REPLY_TO": "task-complete",
+    "REVIEW": "PLAN",
+    "ACTION": "COMPLETED",
+    "REASON": "Illustrative completion branch only; not evidence of an actual successful session.",
+    "EVIDENCE": [
+      "task-complete"
+    ],
+    "REQUEST": null,
+    "HUMAN_GATE": false,
+    "ERROR": null
+  },
+  {
+    "VERSION": "0.2",
+    "TYPE": "DECISION",
+    "SESSION_ID": "example-session",
+    "STAGE": "phase-1",
+    "AGENT": "zcode",
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor",
+    "MESSAGE_ID": "decision-error",
+    "IN_REPLY_TO": "task-002",
+    "REVIEW": "PLAN",
+    "ACTION": "ERROR",
+    "REASON": "Unable to reconcile the candidate with the current context.",
+    "EVIDENCE": [
+      "task-002"
+    ],
+    "REQUEST": null,
+    "HUMAN_GATE": false,
+    "ERROR": {
+      "code": "CONTEXT_UNCERTAIN",
+      "message": "Stop and inspect the context."
+    }
+  },
+  {
+    "VERSION": "0.2",
+    "TYPE": "DECISION",
+    "SESSION_ID": "example-session",
+    "STAGE": "phase-1",
+    "AGENT": "zcode",
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor",
+    "MESSAGE_ID": "decision-initial",
+    "IN_REPLY_TO": "task-001",
+    "REVIEW": "PLAN",
+    "ACTION": "DISPATCH_TASK",
+    "REASON": "The initial read-only task is within the example authorization.",
+    "EVIDENCE": [
+      "task-001"
+    ],
+    "REQUEST": null,
+    "HUMAN_GATE": false,
+    "ERROR": null
+  },
+  {
+    "VERSION": "0.2",
+    "TYPE": "TASK",
+    "MESSAGE_ID": "task-revised",
+    "SESSION_ID": "example-session",
+    "IN_REPLY_TO": "decision-revise",
+    "STAGE": "phase-1",
+    "AGENT": "zcode",
+    "ACTION": "CONTINUE",
+    "PROMPT": "Inspect the headings in the approved fixture and record the command and actual output. Do not modify files.",
+    "HUMAN_GATE": false,
+    "STOP_CONDITION": "Return the observations with their verification evidence and stop.",
+    "REASON": null,
+    "ERROR": null,
+    "PLANNER": "example-planner",
+    "SUPERVISOR": "local-supervisor"
   }
 ]

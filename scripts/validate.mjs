@@ -20,5 +20,5 @@ if (errors.length) {
   process.exitCode = 1;
 } else {
   console.log(`Validated ${files.length} Git-visible files: local Markdown links, known secret patterns and Git whitespace.`);
-  console.log('Static foundation checks only; no Agent or LLM integration has been exercised.');
+  console.log('Foundation and isolated evaluation checks only; no real Agent or LLM inference has been exercised.');
 }

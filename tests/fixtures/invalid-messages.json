@@ -1,5 +1,8 @@
 [
-  { "name": "unsupported version", "base": 0, "patch": { "VERSION": "0.2" } },
+  { "name": "unsupported version", "base": 0, "patch": { "VERSION": "0.3" } },
+  { "name": "legacy protocol rejected", "base": 0, "patch": { "VERSION": "0.1" } },
+  { "name": "missing planner", "base": 0, "remove": ["PLANNER"] },
+  { "name": "missing supervisor", "base": 0, "remove": ["SUPERVISOR"] },
   { "name": "unknown field", "base": 0, "patch": { "EXTRA": true } },
   { "name": "unknown action", "base": 0, "patch": { "ACTION": "EXECUTE" } },
   { "name": "missing stage", "base": 0, "remove": ["STAGE"] },
