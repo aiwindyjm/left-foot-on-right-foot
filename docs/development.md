@@ -11,10 +11,27 @@ npm run validate
 git diff --check
 ```
 
-`npm test` 运行静态协议与基础资产测试；`npm run validate` 再检查整个 Git 可见工作集的
-文档链接、秘密模式和 Git 空白错误。它也检查未跟踪但未忽略的文件，
-忽略 `node_modules` 等本地内容；不联网检查外部链接。
+`npm test` 运行静态协议测试、基础资产测试和批次A新增的核心/存储/模型客户端/集成测试
+（node:test，约 179 项；模型链路走本地假 Ollama 服务，不加载真实权重）。
+`npm run validate` 再跑完整测试、UI typecheck、Vite 构建，并检查整个 Git 可见工作集的
+文档链接、秘密模式和 Git 空白错误；不联网检查外部链接。
 `npm run check:secrets` 单独扫描已知秘密模式，不会打印匹配值。
+
+## 桌面功能开发版（批次A）
+
+```sh
+npm install            # 首次安装；本机 npm 沙箱不跑 postinstall 时再执行 node scripts/fetch-electron.mjs
+npm start              # 构建（TS + Vite）并以模拟模式启动桌面
+npm run dev            # 同上（显式开发入口）
+npm run package:win    # 生成 out/<name>-win32-x64/（Windows x64 开发包）
+npm run dist:win       # 生成 out/make/zip/... 分发 zip
+```
+
+模拟模式下桌面使用内置模拟会话与本地回环假模型服务（真实 HTTP 协议链路，非固定返回），
+可完整体验：创建项目 → 设阈值 → 启动循环 → 观察评估/缺项 → 暂停/停止 → 查看持久记录。
+生产模式：`LFRR_MODE=production LFRR_MODEL_ENDPOINT=http://127.0.0.1:11434 npm start`，
+需要本机 Ollama 与已拉取模型；Codex/ZCODE 真实接入在批次B联调前会诚实报告"未联调"。
+桌面数据（SQLite/WAL）保存在应用数据目录 `coordination/` 下，不写入被管理项目。
 
 依赖只用于开发验证，版本精确固定并提交 `package-lock.json`。
 Phase 0 基础测试与 Phase 1A 默认测试不连接模型、不启动浏览器；显式模型评估命令见 [评估说明](../evaluation/README.md)。
@@ -23,7 +40,7 @@ Phase 0 基础测试与 Phase 1A 默认测试不连接模型、不启动浏览�
 Phase 1 的明确技术版本、构建与部署方案见 [技术栈选型](tech-stack.md)，不表示当前已安装那些依赖。
 当前 Phase 1A 用单个严格 TS 编译配置构建 tools/evaluation 到 .cache/evaluation，只引入编译与类型依赖。
 技术栈3.0使用Electron/Forge与React/TS/Vite桌面入口，TS协调核心独立于UI；CLI仅调试，不引入XState或通用Agent框架。
-Windows组件为C#/.NET10/FlaUI.UIA3，Mac为Swift/AX，通过版本化JSON-RPC stdio通信；本轮不安装或创建应用空壳。
+Windows组件为C#/.NET10/FlaUI.UIA3，Mac为Swift/AX，通过版本化JSON-RPC stdio通信；开发交付须含功能，不以空壳代替。
 SQLite/better-sqlite3与Pino为业务记录和诊断，桌面数据放应用数据目录，不写入目标项目，旧评估.local/不自动迁移。
 引入 better-sqlite3 时须处理现有 CI 的 --ignore-scripts 与原生绑定安装冲突，
 增加经审查的定向 rebuild 及 Windows/Linux 数据库 smoke test，不能只凭依赖安装退出码宣称可用。
@@ -54,7 +71,8 @@ Forge内测包不包含账号、会话、数据库或权重；公开签名/公�
 新增行为要补适当测试；修复缺陷先补可复现的失败用例。
 Windows/Linux CI 运行基础验证、TS 构建和环回假服务故障测试，不接触真实模型、Agent、Cookie 或用户会话。
 后续桌面CI与原生组件测试按平台增加，Mac ARM交互需实机；Linux基础CI不表示Linux桌面受支持。
-当前只执行计划D0，真实对象、读写权限和阶段门槛见 [桌面接入验收](desktop-integration.md)。
+按最新 [开发计划](roadmap/delivery-plan.md) 先实现功能并做本地集成；真实对象缺失不阻塞编码。
+真实读写仍按 [桌面接入验收](desktop-integration.md) 授权，模拟测试和实际兼容结果分开报告。
 
 ## Git 与审查
 

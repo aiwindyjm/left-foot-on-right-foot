@@ -4,7 +4,7 @@
 
 > Let AI step on AI. 让 AI 踩着 AI 往前走。
 
-**当前已确定Windows/macOS桌面方案，正落实文档与接入验收基线。已有基础和旧隔离评估工具，但桌面应用、安装包、自动交接与阈值停止尚未实现；尚无已验证的生产 Adapter。**
+**当前已确定Windows/macOS桌面方案，下一交付是可运行功能开发版，再进行真实会话联调。已有基础和旧隔离评估工具，但桌面应用、安装包、自动交接与阈值停止尚未实现；尚无已验证的生产 Adapter。**
 
 ## 这是干什么的？
 
@@ -110,7 +110,7 @@ Mac按需申请辅助功能权限，Windows不默认管理员运行；临时剪�
 
 ## 现在怎么跑？
 
-现在能跑的是**基础与评估工具测试**，不是自动协作。需要 Git、Node.js 24 和 npm。
+现在能跑的是**基础与评估工具测试**，以及批次A的**桌面功能开发版（模拟模式）**，不是自动协作。需要 Git、Node.js 24 和 npm。
 
 ```sh
 git clone https://github.com/aiwindyjm/left-foot-on-right-foot.git
@@ -124,6 +124,18 @@ npm run validate
 不需要 API Key，不登录 ChatGPT，不控制浏览器或 Agent。
 测试通过不表示自动闭环已经可用。
 
+**桌面功能开发版**（Windows，模拟模式）：
+
+```sh
+npm install
+npm start
+```
+
+会打开桌面控制台：创建模拟项目、设置目标/PRD 与停止阈值、启动双会话循环、
+观察评估与缺项、暂停/停止并查看持久记录。模拟会话与假模型服务仅用于本地开发测试，
+不代表真实产品兼容；Codex/ZCODE 真实接入待联调（见 [开发计划](docs/roadmap/delivery-plan.md)）。
+Windows 开发包构建：`npm run package:win`。详见 [开发说明](docs/development.md)。
+
 本机已有 Ollama 和固定模型时，可运行只读检查，不加载模型：
 
 ```sh
@@ -136,7 +148,7 @@ npm run eval:preflight
 ## 从哪里看起？
 
 - [完整 PRD](docs/PRD.md)：双会话操作、完成度阈值、本地协调职责与验收标准。
-- [技术选型 3.0](docs/tech-stack.md)：Electron/React + TypeScript核心 + Ollama/SQLite，Windows UIA与Mac AX分平台实现；选定不等于已跑通。
+- [技术选型](docs/tech-stack.md)：Electron/React + TypeScript核心 + Ollama/SQLite，Windows UIA与Mac AX分平台实现；选定不等于已跑通。
 - [桌面接入验收](docs/desktop-integration.md)：先指定Codex/ZCODE测试会话，先读后写，所有未实测能力明确标记。
 - [架构与模块边界](docs/architecture.md)：不绑定厂商，也不先造一大堆空目录。
 - [通信协议](protocol/README.md)与[状态机](docs/workflow.md)：什么时候继续，什么时候必须停。
@@ -150,7 +162,8 @@ npm run eval:preflight
 | --- | --- | --- |
 | Phase 0 | 项目基础、协议与开源规则 | 基础已建立 |
 | Phase 1A | 桌面文档基线、Windows已有会话接入验证 | 文档已更新，真实测试对象待指定，旧评估不自动恢复 |
-| Phase 1B / v0.1.0内测目标 | 桌面多项目、每项目双会话、Windows安装包，后续Mac实机 | 未实现，按接入证据和分步授权推进 |
+| 批次A 功能开发版 | 桌面/核心/存储/模型客户端/适配代码与模拟集成（W2-W7本地） | **开发版已实现：模拟模式可运行，Windows开发包已构建；真实Adapter未联调** |
+| Phase 1B / v0.1.0内测目标 | Windows真实联调、内测包，后续Mac实机 | 未实现，按接入证据和分步授权推进 |
 | Phase 2 / v0.2.0 | Human Gate 交互、Session、恢复 | 未实现 |
 | Phase 3 / v0.3.0 | 更多产品与模型接入；Codex/ZCODE属于首批 | 未实现 |
 | Phase 4 / v0.4.0 | 多 Agent 工作流 | 未实现 |
@@ -158,6 +171,9 @@ npm run eval:preflight
 
 最低限度的人工审批、紧急停止和防重复派发不能等到第二关再补。
 接入方式及第三方服务使用约束也必须先确认，不能把“想接”写成“已支持”。
+
+开发先从核心、桌面和适配功能开始，用模拟会话做持续测试，再绑定真实会话联调。
+缺少测试账号/会话不阻塞功能开发；模拟跑通不等于产品已兼容。工作安排见 [开发计划](docs/roadmap/delivery-plan.md)。
 
 ## 一起试试？
 

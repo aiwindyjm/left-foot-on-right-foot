@@ -1,6 +1,8 @@
 # Dependencies and build output
 node_modules/
 dist/
+dist-ui/
+out/
 build/
 coverage/
 .cache/
@@ -55,6 +57,7 @@ temp/
 .claude/
 .zcode/
 .opencode/
+.mimosa/
 .DS_Store
 Thumbs.db
 Desktop.ini
