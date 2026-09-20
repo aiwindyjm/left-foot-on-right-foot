@@ -32,3 +32,27 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Validate foundation
         run: npm run validate
+
+  desktop-e2e:
+    name: Desktop E2E (renderer full flow)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1, node24
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0, node24
+        with:
+          node-version: '24'
+          cache: npm
+      # 桌面 E2E 需要 Electron 二进制：此处允许安装脚本（仅 electron 官方 postinstall）。
+      - name: Install dependencies (with electron binary)
+        run: npm ci
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+      - name: Build (main + bundles + ui)
+        run: npm run build
+      - name: Run renderer-driven desktop E2E
+        run: npm run test:desktop

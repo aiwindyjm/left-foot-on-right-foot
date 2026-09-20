@@ -5,25 +5,53 @@
   "description": "Project foundation for a local LLM supervisor coordinating independent planners and coding agents.",
   "license": "MIT",
   "type": "module",
+  "main": "dist/desktop/main.js",
   "engines": {
     "node": ">=24 <25",
     "npm": ">=11 <12"
   },
   "scripts": {
     "build:eval": "tsc -p tsconfig.evaluation.json",
-    "eval:preflight": "npm run build:eval && node .cache/evaluation/cli.js preflight",
-    "eval:practice": "npm run build:eval && node .cache/evaluation/cli.js practice",
-    "eval:acceptance": "npm run build:eval && node .cache/evaluation/cli.js acceptance",
-    "test": "npm run build:eval && node --test tests/*.test.mjs",
-    "validate": "npm test && node scripts/validate.mjs",
+    "build:app": "tsc -p tsconfig.app.json",
+    "build:bundles": "node scripts/build-bundles.mjs",
+    "build:ui": "vite build",
+    "typecheck:ui": "tsc -p tsconfig.ui.json --noEmit",
+    "build": "npm run build:app && npm run build:bundles && npm run build:ui",
+    "start": "npm run build && electron .",
+    "dev": "node scripts/dev.mjs",
+    "package:win": "npm run build && electron-forge package --platform win32 --arch x64",
+    "dist:win": "npm run build && electron-forge make --platform win32 --arch x64",
+    "verify:package": "node scripts/verify-package.mjs",
+    "test": "npm run build:eval && npm run build:app && node --test tests/*.test.mjs",
+    "test:desktop": "npm run build && node --test tests/e2e/*.test.mjs",
+    "validate": "npm test && npm run typecheck:ui && npm run build:ui && node scripts/validate.mjs",
     "check:secrets": "node scripts/check-secrets.mjs"
   },
-  "devDependencies": {
-    "@types/node": "24.13.5",
+  "dependencies": {
     "ajv": "8.20.0",
+    "better-sqlite3": "13.0.3",
     "jsonc-parser": "3.3.1",
+    "pino": "10.3.1"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "7.11.2",
+    "@electron-forge/maker-zip": "7.11.2",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/node": "24.13.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "electron": "44.4.3",
+    "esbuild": "0.28.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "remark-parse": "11.0.0",
+    "typescript": "5.9.3",
     "unified": "11.0.5",
-    "typescript": "5.9.3"
+    "vite": "8.3.0"
+  },
+  "allowScripts": {
+    "electron@44.4.3": true,
+    "better-sqlite3": false
   }
 }
