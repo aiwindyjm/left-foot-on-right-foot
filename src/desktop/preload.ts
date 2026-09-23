@@ -95,6 +95,9 @@ const api: LfrrApi = {
   setForegroundMode(enabled: boolean) {
     return sendCommand({ kind: 'setForegroundMode', enabled: enabled === true });
   },
+  testInjectFault(scope: 'send-unknown' | 'clear', sessionId: string) {
+    return sendCommand({ kind: 'testInjectFault', scope, sessionId: String(sessionId) });
+  },
   async listRecords(projectId: string, limit: number) {
     return (await ipcRenderer.invoke('lfrr:listRecords', String(projectId), Number(limit))) as RecordItem[];
   },

@@ -18,7 +18,7 @@ import { startFakeModelServer, type FakeModelServer } from '../fake-model/fake-o
 import type { ServiceCommand, ServiceResult } from '../shared/service-protocol.js';
 import type { AdapterCapabilities, ProductAdapter } from '../adapters/types.js';
 import type { ProductSessionInfo } from '../adapters/types.js';
-import type { ModelStatusView, RecordItem } from '../shared/views.js';
+import type { AppStatusView, ModelStatusView, RecordItem } from '../shared/views.js';
 
 export interface CoordinationServiceOptions {
   mode: 'simulated' | 'production';
@@ -26,6 +26,8 @@ export interface CoordinationServiceOptions {
   modelEndpoint?: string;
   modelName?: string;
   pollIntervalMs?: number;
+  /** 状态变化回调（事件驱动推送；entry 注入后宿主不再需要轮询）。 */
+  onStatusChanged?: ((status: AppStatusView) => void) | undefined;
 }
 
 export class CoordinationService {
@@ -34,6 +36,7 @@ export class CoordinationService {
   private readonly store: RecordStore;
   private readonly db: Store;
   private fakeModel: FakeModelServer | null = null;
+  private simulatedAdapter: SimulatedAdapter | null = null;
   private disposed = false;
 
   private constructor(
@@ -56,6 +59,9 @@ export class CoordinationService {
       sessions: new SessionRegistry(),
       mode: options.mode,
       pollIntervalMs: options.pollIntervalMs,
+      onStatus: options.onStatusChanged
+        ? () => options.onStatusChanged?.(this.coordinator.getStatus())
+        : undefined,
     });
     this.coordinator.loadPersisted();
   }
@@ -66,9 +72,10 @@ export class CoordinationService {
     const store = new RecordStore(db.db);
     const adapters = new Map<string, ProductAdapter>();
     // R10：生产模式不注册可启动的模拟 Adapter（模拟只是测试依赖，不进入生产兜底）。
-    if (options.mode === 'simulated') {
-      adapters.set('simulated', new SimulatedAdapter(undefined, { replyDelayMs: 60 }));
-    }
+    const simulatedAdapter = options.mode === 'simulated'
+      ? new SimulatedAdapter(undefined, { replyDelayMs: 60 })
+      : null;
+    if (simulatedAdapter) adapters.set('simulated', simulatedAdapter);
     adapters.set('codex', createCodexAdapter());
     adapters.set('zcode', createZcodeAdapter());
     let model: CoordinationModel;
@@ -78,6 +85,7 @@ export class CoordinationService {
       model = new OllamaCoordinationModel(fake.url, 'fake-qwen3:8b');
       const service = new CoordinationService(options, model, adapters, db, store);
       service.fakeModel = fake;
+      service.simulatedAdapter = simulatedAdapter;
       return service;
     }
     const endpoint = options.modelEndpoint ?? 'http://127.0.0.1:11434';
@@ -143,11 +151,25 @@ export class CoordinationService {
         return { ok: true, records: this.listRecords(command.projectId, command.limit) };
       case 'listEvents':
         return { ok: true, events: this.coordinator.listEvents(command.projectId, command.limit) };
+      case 'testInjectFault':
+        return this.injectTestFault(command.scope, command.sessionId);
       case 'shutdown':
         return { ok: true };
       default:
         return { ok: false, code: 'UNKNOWN_COMMAND', message: '未知命令' };
     }
+  }
+
+  /** 测试基础设施：仅模拟模式可注入故障；生产模式明确拒绝。 */
+  private injectTestFault(scope: 'send-unknown' | 'clear', sessionId: string): ServiceResult {
+    if (this.options.mode !== 'simulated') {
+      return { ok: false, code: 'TEST_FAULT_UNSUPPORTED', message: '故障注入仅模拟模式可用，生产模式拒绝' };
+    }
+    if (!this.simulatedAdapter) {
+      return { ok: false, code: 'TEST_FAULT_UNSUPPORTED', message: '模拟 Adapter 未注册' };
+    }
+    this.simulatedAdapter.setFaults(sessionId, scope === 'clear' ? null : { sendReceipt: 'unknown' });
+    return { ok: true };
   }
 
   async dispose(): Promise<void> {

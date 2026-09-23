@@ -83,6 +83,8 @@ test('desktop E2E: renderer drives create->start->threshold-stop->pause/resume/s
     'second project: pause -> resume -> stop',
     'global stop blocks start; resumeAll lifts without auto-revive',
     'invalid command returns structured error',
+    'foreground mode toggle is visible and reversible',
+    'unknown send: recovery gate, abandon, then resume works end-to-end',
   ]) {
     assert.ok(names.includes(expected), `缺少 E2E 覆盖步骤：${expected}`);
   }

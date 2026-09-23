@@ -50,10 +50,14 @@ export const legalTransitions: Readonly<Record<ProjectRunState, ReadonlySet<Proj
 };
 
 export function transitionAllowed(from: ProjectRunState, to: ProjectRunState): boolean {
-  if (to === 'paused' || to === 'stopped_user' || to === 'error') {
-    return EXIT_FROM_ANY.has(from) || from === 'error';
+  // 显式声明的转移优先（含 stopped_threshold → stopped_user 的重新开始路径）。
+  if (legalTransitions[from].has(to)) return true;
+  // 保护性退出兜底：活跃/错误状态可随时进入暂停、用户停止或错误。
+  if ((to === 'paused' || to === 'stopped_user' || to === 'error')
+    && (EXIT_FROM_ANY.has(from) || from === 'error')) {
+    return true;
   }
-  return legalTransitions[from].has(to);
+  return false;
 }
 
 export function assertTransition(from: ProjectRunState, to: ProjectRunState): void {

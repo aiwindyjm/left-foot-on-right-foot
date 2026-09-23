@@ -48,6 +48,13 @@ async function bootService(): Promise<void> {
   const manager = new ServiceProcessManager(asServiceProcessHandle(child), {
     commandTimeoutMs: 15_000,
     onExit: (code) => bootLog('service', `utility process exited code=${String(code)}`),
+    // 事件驱动状态推送：服务状态变化即转发 renderer（含 80ms 服务端节流）。
+    onEvent: (event) => {
+      const payload = event as { kind?: string; status?: unknown };
+      if (payload?.kind === 'status' && mainWindow && !mainWindow.isDestroyed() && payload.status) {
+        mainWindow.webContents.send('lfrr:status', payload.status);
+      }
+    },
   });
   manager.bind();
   serviceManager = manager;
@@ -64,21 +71,6 @@ async function bootService(): Promise<void> {
     child.kill();
     throw new Error(`协调 utility 进程初始化失败：${init.code} ${init.message}`);
   }
-  // 状态变化推送到窗口（节流：同 tick 合并）。
-  let pushTimer: NodeJS.Timeout | null = null;
-  const pushStatus = async () => {
-    if (pushTimer) return;
-    pushTimer = setTimeout(() => {
-      pushTimer = null;
-      void serviceCommand({ kind: 'getState' }, 5_000).then((result) => {
-        if (mainWindow && !mainWindow.isDestroyed() && result.ok && result.status) {
-          mainWindow.webContents.send('lfrr:status', result.status);
-        }
-      });
-    }, 80);
-  };
-  const interval = setInterval(() => void pushStatus(), 400);
-  app.on('before-quit', () => clearInterval(interval));
 }
 
 function asServiceProcessHandle(child: UtilityProcess): ServiceProcessHandle {
@@ -119,11 +111,11 @@ async function serviceCommand(command: ServiceCommand, timeoutMs?: number): Prom
 function validateCommand(command: ServiceCommand): string | null {
   const isNonEmpty = (value: unknown) => typeof value === 'string' && value.length > 0 && value.length <= 256;
   switch (command.kind) {
-    case 'init':
+    // renderer 不可发送 init/shutdown：init 由宿主启动时发出，
+    // shutdown 属于宿主退出流程——两者经白名单外路径即被拒绝（审查 P2）。
     case 'getState':
     case 'stopAll':
     case 'resumeAll':
-    case 'shutdown':
       return null;
     case 'setForegroundMode':
       return typeof command.enabled === 'boolean' ? null : 'enabled 必须是布尔值';
@@ -132,6 +124,9 @@ function validateCommand(command: ServiceCommand): string | null {
       return null;
     case 'listSessions':
       return isNonEmpty(command.productId) ? null : 'productId 非法';
+    case 'testInjectFault':
+      if (command.scope !== 'send-unknown' && command.scope !== 'clear') return 'scope 非法';
+      return isNonEmpty(command.sessionId) ? null : 'sessionId 非法';
     case 'createProject':
       if (!command.input || typeof command.input !== 'object' || !command.input.config
         || typeof command.input.config !== 'object') {

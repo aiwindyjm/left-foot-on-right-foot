@@ -39,8 +39,8 @@ NOT_RUN 维持两项：C# helper 编译（无 SDK）、真实 Codex/ZCODE 接入
 - 测试：`npm test`（核心，无 Electron）；`npm run test:desktop`（renderer E2E）；`npm run validate`（全链路）。
 - 打包：`npm run package:win`；验收：`npm run verify:package`；分发：`npm run dist:win`。
 - 新开发包：`out/make/zip/win32/x64/left-foot-on-right-foot-win32-x64-0.0.0.zip`
-  SHA-256：`579e9cf46a699e8c5e389ddbe7390466646fae12bc0e0a58d1321b6b3f2460ed`（163MB，
-  含 utility 进程接线修复；此前 b653be3e… 为接线前版本，同样应被本包取代）。
+  SHA-256：`9d49a5a07fa1fa5f689f8b78e26b27d74db1d4a37e3a75f869d01fe16351f7f8`（含 utility
+  接线、事件驱动状态推送与独立代码审查修复；此前 579e9cf4…/b653be3e… 均被取代）。
   **旧包（02d6a6ed…，评审单所记哈希）含本地记录，不应分发**。
   新包验收：`node scripts/verify-package.mjs` 通过（白名单条目、本地记录排除、canary 在位）；
   打包版实测：utility 进程 booted ok 且保持运行、SQLite 生成、窗口标题正常、干净退出。
@@ -117,3 +117,28 @@ fork→init ok→booted ok 且进程保持运行、SQLite 生成、窗口标题�
 - `npm run validate`：测试 + UI typecheck + Vite 构建 + 197 文件静态检查。
 - `node scripts/verify-clean.mjs`：干净副本 npm ci → 构建 → 全测（212 pass/3 skip）。
 - `node scripts/verify-package.mjs`：产物内容白名单验收（含 canary）。
+
+## 7. 增量收口（评审修复后第 3 轮：事件驱动 + 独立代码审查）
+
+**事件驱动状态推送**：service 进程内 Coordinator 状态变化经 trailing-edge 节流（80ms，
+保留终态快照）主动推给宿主，宿主转发 renderer；移除 main 侧 400ms 与 entry 侧重复轮询。
+
+**独立代码审查（CodeReviewer）发现并修复**（全部有实证复现）：
+
+| 级别 | 问题 | 修复 | 回归 |
+| --- | --- | --- | --- |
+| P1 | `stopped_threshold → stopped_user` 转移被 transitionAllowed 早退分支拦截，达标后"重新开始"必然抛 illegal transition（UI 按钮必错） | 守卫改为显式转移表优先、保护性退出兜底 | contracts 状态机断言 + ar1-core 重启用例 |
+| P1 | awaitReply 四处 `as 'paused'` 强转（pause 返回 'stop'），前台未开启/绑定失配等真实暂停原因被二次 pause 覆盖为"读取不完整" | 全部改为 pause 后显式 return 'paused' | ar1-core 前台读取用例断言 foreground_required |
+| P2 | entry 命令串行链无服务侧期限：单个永不 settle 的命令会饿死其后全部命令 | 服务侧 60s 看门狗（超时回 SERVICE_TIMEOUT，队列保序）；批次B要求真实 Adapter 自带期限（PRD 14 已约定） | 结构性防御，行为测试不适用 |
+| P2 | 状态推送 80ms 节流为前沿截断，同步块内的终态（达标停止）被丢弃，侧栏停留"运行中" | 改 trailing-edge：窗口内保留最新快照定时补推 | E2E 轮询路径经事件链路验证 |
+| P2 | renderer 可经 lfrr:command 发送 shutdown/init 杀死协调进程 | 白名单移除两者（宿主退出走 manager 直连） | E2E 不受影响（未使用该路径） |
+| P3 | inFlightIntent 只写不读的死字段 | 删除 | 全套测试通过 |
+
+**测试基线**：`npm test` 218/218（新增 2 项 P1 回归）；`npm run validate` 通过；
+E2E 1/1（新增前台模式开关、unknown_send→恢复核对→abandon→resume 全路径两个步骤，
+经 `testInjectFault` 测试基础设施注入，仅模拟模式生效）；打包版冒烟 bootLog
+booted ok、SQLite 生成、窗口标题正常。
+
+**测试基础设施说明**：`testInjectFault` 命令向模拟 Adapter 注入发送回执故障，
+服务端双重限制（production 模式明确拒绝 + 无模拟 Adapter 拒绝）；UI 不使用，
+仅供 E2E 覆盖真实异常路径。

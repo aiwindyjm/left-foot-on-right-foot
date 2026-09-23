@@ -168,6 +168,9 @@ test('project state transitions follow contract', () => {
   // 达标停止是终态：调高阈值后不得自动复活（PRD 15）。
   assert.equal(transitionAllowed('stopped_threshold', 'running'), false);
   assert.throws(() => assertTransition('stopped_threshold', 'running'), /illegal/);
+  // 但用户显式"重新开始"须经 stopped_user（审查 P1-1 回归）。
+  assert.equal(transitionAllowed('stopped_threshold', 'stopped_user'), true);
+  assert.doesNotThrow(() => assertTransition('stopped_threshold', 'stopped_user'));
   assert.equal(transitionAllowed('created', 'stopped_threshold'), false);
   assert.equal(transitionAllowed('stopped_user', 'created'), true);
 });

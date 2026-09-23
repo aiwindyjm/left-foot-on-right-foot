@@ -61,6 +61,8 @@
 - 只暂存审查过的任务文件，提交前检查暂存区与敏感信息。
 - Commit 使用 `type: description`，例如 `docs: clarify human gate policy`。
 - 提交、推送、创建仓库和发布应在用户授权范围内；普通代码任务不隐含发布授权。
+- GitHub Release 是独立交付动作：阶段验收后按 [开发与发布](docs/development.md) 规划标签、变更日志、验收证据和资产；开发阶段可用明确标记的 pre-release，不能长期遗漏阶段 Release。
+- Release 标签必须指向已验收提交；发布后禁止重写标签或强推。未签名内测包只能作为 pre-release 附件，不能写成正式支持。
 - 每阶段保持可恢复；失败时保留现场并解释，不用破坏性命令“清理”。
 - 未经用户或仓库负责人明确要求，不启动其他 Agent 或委派任务。
 

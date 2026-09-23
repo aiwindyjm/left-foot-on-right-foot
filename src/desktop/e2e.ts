@@ -164,6 +164,66 @@ const E2E_SCRIPT = `
     return result.code;
   });
 
+  await step('foreground mode toggle is visible and reversible', async () => {
+    const enabled = await window.lfrr.setForegroundMode(true);
+    expect(enabled.ok === true, '开启前台模式失败: ' + JSON.stringify(enabled));
+    const statusOn = await window.lfrr.getState();
+    expect(statusOn.foregroundModeEnabled === true, '开启后状态应显示前台模式已开启');
+    const disabled = await window.lfrr.setForegroundMode(false);
+    expect(disabled.ok === true, '撤销前台模式失败');
+    const statusOff = await window.lfrr.getState();
+    expect(statusOff.foregroundModeEnabled === false, '撤销后状态应显示前台模式已关闭');
+    return true;
+  });
+
+  await step('unknown send: recovery gate, abandon, then resume works end-to-end', async () => {
+    const injected = await window.lfrr.testInjectFault('send-unknown', 'sim-eval-progress');
+    expect(injected.ok === true, '故障注入失败（仅模拟模式可用）: ' + JSON.stringify(injected));
+    try {
+      const created = await window.lfrr.createProject({
+        config: {
+          projectId: unique + '-fault',
+          name: 'E2E 恢复核对项目',
+          workspacePath: 'C:\\\\e2e-not-real\\\\fault-' + unique,
+          goal: 'E2E 验证目标3',
+          prdRef: 'e2e@1',
+          evaluator: { productId: 'simulated', sessionId: 'sim-eval-progress', label: null },
+          executor: { productId: 'simulated', sessionId: 'sim-exec', label: null },
+          stopThresholdPercent: 80,
+        },
+      });
+      expect(created.ok === true, '故障项目创建失败: ' + JSON.stringify(created));
+      const started = await window.lfrr.startProject(unique + '-fault');
+      expect(started.ok === true, '故障项目启动失败: ' + JSON.stringify(started));
+      const paused = await poll(async () => {
+        const status = await window.lfrr.getState();
+        return status.projects.find((p) => p.projectId === unique + '-fault'
+          && p.state === 'paused' && p.pauseReason === 'unknown_send');
+      });
+      expect(paused.state === 'paused', '评估请求回执未知必须暂停');
+      const blocked = await window.lfrr.resumeProject(unique + '-fault');
+      expect(blocked.ok === false && blocked.code === 'RECOVERY_PENDING', '未核对前恢复必须被阻断: ' + JSON.stringify(blocked));
+      // 从记录里定位未决意图（evaluator 侧 unknown）。
+      const records = await window.lfrr.listRecords(unique + '-fault', 100);
+      const unknownIntent = records.find((r) => r.kind === 'prompt_dispatch'
+        && r.meta && r.meta.target === 'evaluator' && r.meta.state === 'unknown');
+      expect(unknownIntent, '应能从记录定位未决意图');
+      const abandoned = await window.lfrr.abandonIntent(unique + '-fault', unknownIntent.meta.intentId);
+      expect(abandoned.ok === true, '人工放弃失败: ' + JSON.stringify(abandoned));
+      const cleared = await window.lfrr.testInjectFault('clear', 'sim-eval-progress');
+      expect(cleared.ok === true, '清除注入失败');
+      const resumed = await window.lfrr.resumeProject(unique + '-fault');
+      expect(resumed.ok === true, '核对放弃后恢复应成功: ' + JSON.stringify(resumed));
+      const stopped = await window.lfrr.stopProject(unique + '-fault');
+      expect(stopped.ok === true, '停止失败');
+      const view = (await window.lfrr.getState()).projects.find((p) => p.projectId === unique + '-fault');
+      expect(view.state === 'stopped_user', '最终状态应为 stopped_user');
+      return view.state;
+    } finally {
+      await window.lfrr.testInjectFault('clear', 'sim-eval-progress');
+    }
+  });
+
   return results;
 })()
 `;

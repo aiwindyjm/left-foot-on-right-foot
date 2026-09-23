@@ -823,3 +823,65 @@ test('R9: workspace lock is retained while an unknown send is unresolved', async
 
 // 抑制未使用导入告警（AdapterError 在后续直接构造场景使用）。
 void AdapterError;
+
+
+test('R1-fix: threshold-stopped project can be explicitly restarted (state guard regression)', async () => {
+  const harness = await makeHarness();
+  try {
+    const adapter = attachReplyStore(new ControllableAdapter('controllable', new Map([
+      ['a1', { role: 'evaluator', script: [{ total: 80, basis: '达标', missing: [], prompt: '尾任务' }] }],
+      ['b1', { role: 'executor' }],
+    ])));
+    harness.adapters.set('controllable', adapter);
+    harness.coordinator.createProject(projectInput('r-fix1', {
+      evaluator: { productId: 'controllable', sessionId: 'a1', label: null },
+      executor: { productId: 'controllable', sessionId: 'b1', label: null },
+    }));
+    assert.equal(harness.coordinator.startProject('r-fix1').ok, true);
+    await waitFor(harness.coordinator, 'r-fix1', (view) => view.state === 'stopped_threshold');
+    // 审查 P1-1：达标停止后必须能显式重新开始（此前会抛 illegal transition）。
+    const restarted = harness.coordinator.startProject('r-fix1');
+    assert.equal(restarted.ok, true, `重新开始失败: ${JSON.stringify(restarted)}`);
+    const view = harness.coordinator.getStatus().projects.find((p) => p.projectId === 'r-fix1');
+    assert.equal(view.state, 'running');
+    const events = harness.coordinator.listEvents('r-fix1', 50);
+    assert.ok(events.some((event) => event.type === 'restart_after_threshold_stop'), '应记录达标后重启事件');
+    harness.coordinator.stopProject('r-fix1');
+  } finally {
+    await harness.cleanup();
+  }
+});
+
+class ForegroundReadAdapter extends ControllableAdapter {
+  capabilities() {
+    return {
+      productId: this.productId,
+      readReply: 'foreground',
+      sendPrompt: 'background',
+      cancelRunningTask: 'unsupported',
+      integration: 'simulated',
+      notes: ['foreground-read test adapter'],
+    };
+  }
+}
+
+test('R1-fix: foreground-read without mode reports foreground_required (pause reason preserved)', async () => {
+  const harness = await makeHarness();
+  try {
+    const adapter = attachReplyStore(new ForegroundReadAdapter('fgr', new Map([
+      ['a1', { role: 'evaluator', script: [{ total: 65, basis: 'x', missing: [], prompt: '任务' }] }],
+      ['b1', { role: 'executor' }],
+    ])));
+    harness.adapters.set('fgr', adapter);
+    harness.coordinator.createProject(projectInput('r-fix2', {
+      evaluator: { productId: 'fgr', sessionId: 'a1', label: null },
+      executor: { productId: 'fgr', sessionId: 'b1', label: null },
+    }));
+    assert.equal(harness.coordinator.startProject('r-fix2').ok, true);
+    const paused = await waitFor(harness.coordinator, 'r-fix2', (view) => view.state === 'paused');
+    // 审查 P1-2：暂停原因必须是 foreground_required（此前被二次 pause 覆盖为 adapter_failure）。
+    assert.equal(paused.pauseReason, 'foreground_required', `实际: ${paused.pauseReason} / ${paused.statusDetail}`);
+  } finally {
+    await harness.cleanup();
+  }
+});

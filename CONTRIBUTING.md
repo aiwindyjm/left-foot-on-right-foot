@@ -31,3 +31,6 @@ Windows通过不代表Mac支持，SDK安装和真实会话操作不可当作默�
 
 发布、兼容性和版本规则见 [开发与发布](docs/development.md)。
 私密漏洞请按 [安全政策](SECURITY.md)报告；社区行为请遵守 [行为准则](CODE_OF_CONDUCT.md)。
+
+阶段完成后，贡献者应在变更说明中注明是否达到下一个 Release 门槛。普通 PR 不创建 Release；
+Release 由维护者在验收提交上统一创建，预发布版本必须明确标注未完成能力和测试边界。

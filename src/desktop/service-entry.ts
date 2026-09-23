@@ -3,6 +3,7 @@
 // 传输抽象：Electron utilityProcess（process.parentPort）与 node child_process.fork
 // （process.send/on('message')）同一入口可跑，便于无 Electron 环境测试。
 import { CoordinationService } from './service.js';
+import type { AppStatusView } from '../shared/views.js';
 import {
   isServiceEnvelope, makeEventEnvelope, makeResultEnvelope,
   type ServiceCommand, type ServiceResult,
@@ -44,7 +45,11 @@ async function main(): Promise<void> {
   // 而不是拒绝——renderer 的状态查询与操作命令天然并发，拒绝会造成大量误失败。
   // 长命令的超时保护由宿主 ServiceProcessManager 的请求期限承担。
   let service: CoordinationService | null = null;
+  let lastStatusPush = 0;
+  let pendingStatus: AppStatusView | null = null;
+  let statusTimer: NodeJS.Timeout | null = null;
   let queue: Promise<void> = Promise.resolve();
+  const commandTimers = new Map<number, NodeJS.Timeout>();
 
   const handleMessage = (raw: unknown): void => {
     if (!isServiceEnvelope(raw) || raw.id === null || typeof raw.id !== 'number') return;
@@ -65,6 +70,21 @@ async function main(): Promise<void> {
           dbDir: command.dbDir,
           modelEndpoint: command.modelEndpoint,
           modelName: command.modelName,
+          // 事件驱动状态推送（trailing-edge 节流）：窗口内保留最新快照并定时补推，
+          // 同步块内的终态更新（如达标停止）不会被前沿截断丢弃。
+          onStatusChanged: (status) => {
+            pendingStatus = status;
+            if (statusTimer !== null) return;
+            const wait = Math.max(0, 80 - (Date.now() - lastStatusPush));
+            statusTimer = setTimeout(() => {
+              statusTimer = null;
+              lastStatusPush = Date.now();
+              if (pendingStatus) {
+                port.postMessage(makeEventEnvelope({ kind: 'status', status: pendingStatus }));
+                pendingStatus = null;
+              }
+            }, wait);
+          },
         });
       } catch (error) {
         port.postMessage(makeResultEnvelope(id, {
@@ -78,7 +98,18 @@ async function main(): Promise<void> {
       return;
     }
     try {
-      const result: ServiceResult = await service.handleCommand(command);
+      // 服务侧看门狗：单命令 60s 期限（adapter/model 契约要求自带期限，
+      // 此处兜底保证宿主不会无限等待；队列仍保序等待底层收敛）。
+      const result: ServiceResult = await Promise.race([
+        service.handleCommand(command),
+        new Promise<ServiceResult>((resolve) => {
+          commandTimers.set(id, setTimeout(() => resolve({
+            ok: false, code: 'SERVICE_TIMEOUT', message: `服务命令超时（${command.kind}，60s）`,
+          }), 60_000));
+        }),
+      ]);
+      const timer = commandTimers.get(id);
+      if (timer) { clearTimeout(timer); commandTimers.delete(id); }
       port.postMessage(makeResultEnvelope(id, result));
     } catch (error) {
       port.postMessage(makeResultEnvelope(id, {

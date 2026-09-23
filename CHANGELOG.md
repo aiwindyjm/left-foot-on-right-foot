@@ -5,6 +5,9 @@
 
 ## [Unreleased]
 
+当前未发布版本。Phase 0 基础资产完成并获明确授权后，整理为 `v0.0.1-foundation` GitHub Release；
+在此之前本节继续收集后续变更，不以提交次数自动生成版本。
+
 ### Added
 
 - 桌面接入验收清单：D0-D4阶段门槛、Codex/ZCODE指定会话先读后写、双平台NOT_RUN矩阵与多项目/安装验收场景；没有执行真实会话测试。

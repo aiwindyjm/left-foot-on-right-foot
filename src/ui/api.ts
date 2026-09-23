@@ -26,6 +26,11 @@ export interface LfrrApi {
   listEvents(projectId: string | null, limit: number): Promise<AuditEventItem[]>;
   /** 订阅状态推送；返回取消订阅函数。 */
   onState(callback: (status: AppStatusView) => void): () => void;
+  /**
+   * 测试基础设施（仅模拟模式生效，生产模式服务端拒绝）：向模拟 Adapter 注入
+   * 发送回执故障，供桌面 E2E 覆盖 unknown_send → 恢复核对全路径。UI 不使用。
+   */
+  testInjectFault(scope: 'send-unknown' | 'clear', sessionId: string): Promise<ServiceResult>;
 }
 
 declare global {

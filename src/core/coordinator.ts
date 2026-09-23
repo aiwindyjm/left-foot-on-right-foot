@@ -64,8 +64,6 @@ interface ProjectRuntime {
   lastRoundSignature: string | null;
   stalledRounds: number;
   loop: AbortController | null;
-  /** 正在飞行的发送意图（sendPrompt 已调用未返回）。 */
-  inFlightIntent: number | null;
   heldSessions: Array<{ productId: string; sessionId: string }>;
   /** 工作区锁是否仍被本项目占用（未决外部任务时保留）。 */
   holdsWorkspace: boolean;
@@ -124,8 +122,7 @@ export class Coordinator {
         lastRoundSignature: null,
         stalledRounds: 0,
         loop: null,
-        inFlightIntent: null,
-        heldSessions: [],
+            heldSessions: [],
         holdsWorkspace: false,
       });
     }
@@ -221,8 +218,7 @@ export class Coordinator {
       lastRoundSignature: null,
       stalledRounds: 0,
       loop: null,
-      inFlightIntent: null,
-      heldSessions: [],
+        heldSessions: [],
       holdsWorkspace: false,
     });
     this.notifyStatus();
@@ -876,8 +872,7 @@ export class Coordinator {
         prompt: text,
         target: meta.target,
       });
-      runtime.inFlightIntent = intentId;
-      const operation = await this.runForegroundUnit(runtime, gen, `send:${meta.label}`, async () => {
+        const operation = await this.runForegroundUnit(runtime, gen, `send:${meta.label}`, async () => {
         const binding = await adapter.verifyBinding(sessionId);
         if (!binding.ok) {
           throw new AdapterError('ADAPTER_BINDING_LOST', binding.detail);
@@ -893,7 +888,6 @@ export class Coordinator {
           },
         );
       });
-      runtime.inFlightIntent = null;
       if (operation.status !== 'ok') {
         if (operation.status === 'blocked' || !this.ensureActive(runtime, gen)) {
           this.deps.store.resolveIntent(intentId, 'aborted', '停止/暂停发生在前台发送开始前，未发出');
@@ -932,8 +926,7 @@ export class Coordinator {
         this.deps.store.resolveIntent(intentId, 'aborted', '停止/暂停发生在发送开始前，未发出');
         return 'aborted';
       }
-      runtime.inFlightIntent = intentId;
-      try {
+        try {
         receipt = await this.sendWithTimeout(
           adapter, sessionId, text,
           {
@@ -942,8 +935,7 @@ export class Coordinator {
           },
         );
       } finally {
-        runtime.inFlightIntent = null;
-      }
+        }
     }
     // 飞行结束：无论期间是否发生停止/暂停，都按真实回执落库（不猜测未发出）。
     this.deps.store.resolveIntent(
@@ -1022,8 +1014,9 @@ export class Coordinator {
       try {
         if (adapter.capabilities().readReply === 'foreground') {
           if (!this.foregroundModeEnabled) {
-            return this.pause(runtime, 'foreground_required',
-              `操作「read:${sessionId}」需要前台控制，但专用前台模式未开启；请在界面上显式开启后再恢复运行`) as 'paused';
+            this.pause(runtime, 'foreground_required',
+              `操作「read:${sessionId}」需要前台控制，但专用前台模式未开启；请在界面上显式开启后再恢复运行`);
+            return 'paused';
           }
           const operation = await this.runForegroundUnit(runtime, gen, `read:${sessionId}`, async () => {
             const binding = await adapter.verifyBinding(sessionId);
@@ -1042,12 +1035,15 @@ export class Coordinator {
       } catch (error) {
         if (error instanceof AdapterError) {
           const reason = error.code === 'ADAPTER_BINDING_LOST' ? 'binding_lost' : 'adapter_failure';
-          return this.pause(runtime, reason, `读取失败（${error.code}）：${error.message}`) as 'paused';
+          this.pause(runtime, reason, `读取失败（${error.code}）：${error.message}`);
+          return 'paused';
         }
-        return this.pause(runtime, 'adapter_failure', error instanceof Error ? error.message : String(error)) as 'paused';
+        this.pause(runtime, 'adapter_failure', error instanceof Error ? error.message : String(error));
+        return 'paused';
       }
       if (reply && reply.sessionId !== sessionId) {
-        return this.pause(runtime, 'binding_lost', `回复来源会话 ${reply.sessionId} 与绑定 ${sessionId} 不一致`) as 'paused';
+        this.pause(runtime, 'binding_lost', `回复来源会话 ${reply.sessionId} 与绑定 ${sessionId} 不一致`);
+        return 'paused';
       }
       if (reply && reply.messageRef !== afterRef) {
         return { text: reply.text, complete: reply.complete, messageRef: reply.messageRef };

@@ -30,6 +30,12 @@ export type ServiceCommand =
   | { kind: 'checkModel' }
   | { kind: 'listRecords'; projectId: string; limit: number }
   | { kind: 'listEvents'; projectId: string | null; limit: number }
+  /**
+   * 测试基础设施（仅 simulated 模式有效，production 返回错误）：
+   * 向模拟 Adapter 注入故障，供桌面 E2E 覆盖 unknown_send → 恢复核对 →
+   * abandon → resume 的完整 UI 路径；生产模式无模拟 Adapter，不可触发。
+   */
+  | { kind: 'testInjectFault'; scope: 'send-unknown' | 'clear'; sessionId: string }
   | { kind: 'shutdown' };
 
 export type ServiceResult =
@@ -48,7 +54,6 @@ export type ServiceResult =
 export type ServiceEvent =
   | { kind: 'status'; status: AppStatusView }
   | { kind: 'log'; level: 'info' | 'warn' | 'error'; message: string };
-
 export interface ServiceEnvelope<T> {
   v: typeof SERVICE_PROTOCOL_VERSION;
   /** 命令关联 id；结果回填同一 id。 */

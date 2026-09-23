@@ -19,6 +19,8 @@ export interface ServiceProcessHandle {
 export interface ServiceProcessOptions {
   commandTimeoutMs?: number;
   onExit?: ((code: number | null) => void) | undefined;
+  /** 服务主动推送的事件（id=null 信封，如状态变化）。 */
+  onEvent?: ((event: unknown) => void) | undefined;
 }
 
 export class ServiceProcessManager {
@@ -77,7 +79,12 @@ export class ServiceProcessManager {
   }
 
   private handleMessage(message: unknown): void {
-    if (!isServiceEnvelope(message) || message.id === null) return;
+    if (!isServiceEnvelope(message)) return;
+    if (message.id === null) {
+      // 事件信封（无关联 id）：转发给宿主事件回调（如状态推送）。
+      this.options.onEvent?.(message.payload);
+      return;
+    }
     const pending = this.pending.get(message.id);
     if (!pending) return;
     this.pending.delete(message.id);
